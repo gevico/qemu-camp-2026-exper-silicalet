@@ -1285,6 +1285,17 @@ DEF_HELPER_5(vsm4k_vi, void, ptr, ptr, i32, env, i32)
 DEF_HELPER_4(vsm4r_vv, void, ptr, ptr, env, i32)
 DEF_HELPER_4(vsm4r_vs, void, ptr, ptr, env, i32)
 
+DEF_HELPER_4(g233_dma, void, env, tl, tl, tl)
+DEF_HELPER_4(g233_gemm, void, env, tl, tl, tl)
+DEF_HELPER_4(g233_sort, void, env, tl, tl, tl)
+DEF_HELPER_4(g233_vadd, void, env, tl, tl, tl)
+DEF_HELPER_4(g233_crush, void, env, tl, tl, tl)
+DEF_HELPER_4(g233_expand, void, env, tl, tl, tl)
+DEF_HELPER_3(g233_vdot, tl, env, tl, tl)
+DEF_HELPER_4(g233_vrelu, void, env, tl, tl, tl)
+DEF_HELPER_4(g233_vscale, void, env, tl, tl, tl)
+DEF_HELPER_3(g233_vmax, tl, env, tl, tl)
+
 /* CFI (zicfiss) helpers */
 #ifndef CONFIG_USER_ONLY
 DEF_HELPER_1(ssamoswap_disabled, void, env)

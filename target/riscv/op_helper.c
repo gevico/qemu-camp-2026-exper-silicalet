@@ -281,6 +281,225 @@ void helper_cbo_inval(CPURISCVState *env, target_ulong address)
     /* We don't emulate the cache-hierarchy, so we're done. */
 }
 
+static uint32_t g233_ldl(CPURISCVState *env, target_ulong addr, int mmu_idx,
+                         uintptr_t ra)
+{
+    return cpu_ldl_mmuidx_ra(env, addr, mmu_idx, ra);
+}
+
+static void g233_stl(CPURISCVState *env, target_ulong addr, uint32_t val,
+                     int mmu_idx, uintptr_t ra)
+{
+    cpu_stl_mmuidx_ra(env, addr, val, mmu_idx, ra);
+}
+
+static uint8_t g233_ldb(CPURISCVState *env, target_ulong addr, int mmu_idx,
+                        uintptr_t ra)
+{
+    return cpu_ldub_mmuidx_ra(env, addr, mmu_idx, ra);
+}
+
+static void g233_stb(CPURISCVState *env, target_ulong addr, uint8_t val,
+                     int mmu_idx, uintptr_t ra)
+{
+    cpu_stb_mmuidx_ra(env, addr, val, mmu_idx, ra);
+}
+
+void helper_g233_dma(CPURISCVState *env, target_ulong dst, target_ulong src,
+                     target_ulong grain)
+{
+    uint32_t a[32 * 32];
+    int mmu_idx = riscv_env_mmu_index(env, false);
+    uintptr_t ra = GETPC();
+    int n = 0;
+
+    if (grain == 0) {
+        n = 8;
+    } else if (grain == 1) {
+        n = 16;
+    } else if (grain == 2) {
+        n = 32;
+    } else {
+        return;
+    }
+
+    for (int i = 0; i < n * n; i++) {
+        a[i] = g233_ldl(env, src + 4 * i, mmu_idx, ra);
+    }
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            g233_stl(env, dst + 4 * (j * n + i), a[i * n + j], mmu_idx, ra);
+        }
+    }
+}
+
+void helper_g233_gemm(CPURISCVState *env, target_ulong dst, target_ulong x,
+                      target_ulong y)
+{
+    uint32_t a[16];
+    uint32_t b[16];
+    int mmu_idx = riscv_env_mmu_index(env, false);
+    uintptr_t ra = GETPC();
+
+    for (int i = 0; i < 16; i++) {
+        a[i] = g233_ldl(env, x + 4 * i, mmu_idx, ra);
+        b[i] = g233_ldl(env, y + 4 * i, mmu_idx, ra);
+    }
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            int64_t s = 0;
+            for (int k = 0; k < 4; k++) {
+                s += (int64_t)(int32_t)a[i * 4 + k] * (int64_t)(int32_t)b[k * 4 + j];
+            }
+            g233_stl(env, dst + 4 * (i * 4 + j), (uint32_t)s, mmu_idx, ra);
+        }
+    }
+}
+
+void helper_g233_sort(CPURISCVState *env, target_ulong k, target_ulong addr,
+                      target_ulong n)
+{
+    int mmu_idx = riscv_env_mmu_index(env, false);
+    uintptr_t ra = GETPC();
+    target_long m = (target_long)k;
+    target_long len = (target_long)n;
+
+    if (m <= 1 || len <= 1) {
+        return;
+    }
+    if (m > len) {
+        m = len;
+    }
+    for (target_long i = 0; i + 1 < m; i++) {
+        for (target_long j = 0; j + 1 < m - i; j++) {
+            uint32_t ux = g233_ldl(env, addr + 4 * j, mmu_idx, ra);
+            uint32_t uy = g233_ldl(env, addr + 4 * (j + 1), mmu_idx, ra);
+            int32_t x = (int32_t)ux;
+            int32_t y = (int32_t)uy;
+            if (x > y) {
+                g233_stl(env, addr + 4 * j, uy, mmu_idx, ra);
+                g233_stl(env, addr + 4 * (j + 1), ux, mmu_idx, ra);
+            }
+        }
+    }
+}
+
+void helper_g233_vadd(CPURISCVState *env, target_ulong dst, target_ulong x,
+                      target_ulong y)
+{
+    int mmu_idx = riscv_env_mmu_index(env, false);
+    uintptr_t ra = GETPC();
+
+    for (int i = 0; i < 16; i++) {
+        uint32_t a = g233_ldl(env, x + 4 * i, mmu_idx, ra);
+        uint32_t b = g233_ldl(env, y + 4 * i, mmu_idx, ra);
+        g233_stl(env, dst + 4 * i, a + b, mmu_idx, ra);
+    }
+}
+
+void helper_g233_crush(CPURISCVState *env, target_ulong dst, target_ulong src,
+                       target_ulong n)
+{
+    int mmu_idx = riscv_env_mmu_index(env, false);
+    uintptr_t ra = GETPC();
+    target_long len = (target_long)n;
+
+    if (len <= 0) {
+        return;
+    }
+    for (target_long i = 0; i + 1 < len; i += 2) {
+        uint8_t x = g233_ldb(env, src + i, mmu_idx, ra) & 15;
+        uint8_t y = g233_ldb(env, src + i + 1, mmu_idx, ra) & 15;
+        g233_stb(env, dst + i / 2, x | (y << 4), mmu_idx, ra);
+    }
+    if (len & 1) {
+        g233_stb(env, dst + len / 2, g233_ldb(env, src + len - 1, mmu_idx, ra) & 15,
+                 mmu_idx, ra);
+    }
+}
+
+void helper_g233_expand(CPURISCVState *env, target_ulong dst, target_ulong src,
+                        target_ulong n)
+{
+    int mmu_idx = riscv_env_mmu_index(env, false);
+    uintptr_t ra = GETPC();
+    target_long len = (target_long)n;
+
+    if (len <= 0) {
+        return;
+    }
+    for (target_long i = 0; i < len; i++) {
+        uint8_t x = g233_ldb(env, src + i, mmu_idx, ra);
+        g233_stb(env, dst + 2 * i, x & 15, mmu_idx, ra);
+        g233_stb(env, dst + 2 * i + 1, (x >> 4) & 15, mmu_idx, ra);
+    }
+}
+
+target_ulong helper_g233_vdot(CPURISCVState *env, target_ulong x,
+                              target_ulong y)
+{
+    int mmu_idx = riscv_env_mmu_index(env, false);
+    uintptr_t ra = GETPC();
+    target_long s = 0;
+
+    for (int i = 0; i < 16; i++) {
+        int32_t a = (int32_t)g233_ldl(env, x + 4 * i, mmu_idx, ra);
+        int32_t b = (int32_t)g233_ldl(env, y + 4 * i, mmu_idx, ra);
+        s += (target_long)a * (target_long)b;
+    }
+    return (target_ulong)s;
+}
+
+void helper_g233_vrelu(CPURISCVState *env, target_ulong dst, target_ulong src,
+                       target_ulong n)
+{
+    int mmu_idx = riscv_env_mmu_index(env, false);
+    uintptr_t ra = GETPC();
+    target_long len = (target_long)n;
+
+    if (len <= 0) {
+        return;
+    }
+    for (target_long i = 0; i < len; i++) {
+        int32_t x = (int32_t)g233_ldl(env, src + 4 * i, mmu_idx, ra);
+        g233_stl(env, dst + 4 * i, x > 0 ? (uint32_t)x : 0, mmu_idx, ra);
+    }
+}
+
+void helper_g233_vscale(CPURISCVState *env, target_ulong dst, target_ulong src,
+                        target_ulong scale)
+{
+    int mmu_idx = riscv_env_mmu_index(env, false);
+    uintptr_t ra = GETPC();
+    int64_t c = (target_long)scale;
+
+    for (int i = 0; i < 16; i++) {
+        int64_t x = (int32_t)g233_ldl(env, src + 4 * i, mmu_idx, ra);
+        g233_stl(env, dst + 4 * i, (uint32_t)(x * c), mmu_idx, ra);
+    }
+}
+
+target_ulong helper_g233_vmax(CPURISCVState *env, target_ulong src,
+                              target_ulong n)
+{
+    int mmu_idx = riscv_env_mmu_index(env, false);
+    uintptr_t ra = GETPC();
+    target_long len = (target_long)n;
+    int32_t mx;
+
+    if (len <= 0) {
+        return 0;
+    }
+    mx = (int32_t)g233_ldl(env, src, mmu_idx, ra);
+    for (target_long i = 1; i < len; i++) {
+        int32_t x = (int32_t)g233_ldl(env, src + 4 * i, mmu_idx, ra);
+        if (x > mx) {
+            mx = x;
+        }
+    }
+    return (target_ulong)(target_long)mx;
+}
+
 #ifndef CONFIG_USER_ONLY
 
 target_ulong helper_sret(CPURISCVState *env)

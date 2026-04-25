@@ -44,6 +44,7 @@
 
             shellHook = ''
               export PATH="${crossCc}/bin:$PATH"
+              exec fish
             '';
           };
         });

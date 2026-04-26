@@ -1,0 +1,2 @@
+config X_G233_GPIO_RUST
+    bool

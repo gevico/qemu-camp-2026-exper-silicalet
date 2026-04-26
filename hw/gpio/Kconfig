@@ -13,6 +13,11 @@ config GPIO_PWR
 config SIFIVE_GPIO
     bool
 
+config G233_GPIO
+    bool
+    depends on HAVE_RUST
+    select X_G233_GPIO_RUST
+
 config STM32L4X5_GPIO
     bool
 

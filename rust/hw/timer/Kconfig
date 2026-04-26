@@ -1,2 +1,5 @@
 config X_HPET_RUST
     bool
+
+config X_G233_PWM_RUST
+    bool

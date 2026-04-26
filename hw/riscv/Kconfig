@@ -138,6 +138,12 @@ config MIPS_BOSTON_AIA
 config GEVICO_G233
     bool
     default y
+    depends on HAVE_RUST
+    select G233_GPIO
+    select G233_PWM
+    select G233_SPI
+    select G233_WDT
+    select SSI_M25P80
     depends on RISCV32 || RISCV64
     select RISCV_ACLINT
     select SIFIVE_PLIC

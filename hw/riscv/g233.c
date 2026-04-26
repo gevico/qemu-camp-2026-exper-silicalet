@@ -27,8 +27,10 @@
 #include "hw/core/loader.h"
 #include "hw/core/sysbus.h"
 #include "hw/core/qdev-properties.h"
+#include "hw/gpio/g233_gpio.h"
 #include "hw/char/serial-mm.h"
 #include "hw/char/pl011.h"
+#include "hw/timer/g233_pwm.h"
 #include "target/riscv/cpu.h"
 #include "hw/core/sysbus-fdt.h"
 #include "target/riscv/pmu.h"
@@ -42,9 +44,12 @@
 #include "hw/firmware/smbios.h"
 #include "hw/intc/riscv_aclint.h"
 #include "hw/intc/riscv_aplic.h"
+#include "hw/watchdog/g233_wdt.h"
 #include "hw/intc/sifive_plic.h"
 #include "hw/misc/sifive_test.h"
 #include "hw/core/platform-bus.h"
+#include "hw/ssi/g233_spi.h"
+#include "hw/ssi/ssi.h"
 #include "chardev/char.h"
 #include "system/device_tree.h"
 #include "system/system.h"
@@ -112,6 +117,15 @@ static const MemMapEntry virt_memmap[] = {
 #define VIRT64_HIGH_PCIE_MMIO_SIZE  (16 * GiB)
 
 static MemMapEntry virt_high_pcie_memmap;
+
+#define G233_WDT_BASE 0x10010000
+#define G233_GPIO_BASE 0x10012000
+#define G233_PWM_BASE 0x10015000
+#define G233_SPI_BASE 0x10018000
+
+#define G233_GPIO_IRQ 2
+#define G233_WDT_IRQ 4
+#define G233_SPI_IRQ 5
 
 #define VIRT_FLASH_SECTOR_SIZE (256 * KiB)
 
@@ -1714,6 +1728,31 @@ static void virt_machine_init(MachineState *machine)
 
     sysbus_create_simple("goldfish_rtc", s->memmap[VIRT_RTC].base,
         qdev_get_gpio_in(mmio_irqchip, RTC_IRQ));
+
+    g233_wdt_create(G233_WDT_BASE, qdev_get_gpio_in(mmio_irqchip, G233_WDT_IRQ));
+    g233_gpio_create(G233_GPIO_BASE, qdev_get_gpio_in(mmio_irqchip, G233_GPIO_IRQ));
+    g233_pwm_create(G233_PWM_BASE);
+    {
+        DeviceState *spi_dev = g233_spi_create(G233_SPI_BASE,
+            qdev_get_gpio_in(mmio_irqchip, G233_SPI_IRQ));
+        SysBusDevice *spi_sbd = SYS_BUS_DEVICE(spi_dev);
+        DeviceState *flash_dev;
+        qemu_irq flash_cs;
+
+        flash_dev = qdev_new("w25x16");
+        qdev_prop_set_uint8(flash_dev, "cs", 0);
+        qdev_realize_and_unref(flash_dev, BUS(qdev_get_child_bus(spi_dev, "spi")),
+                               &error_fatal);
+        flash_cs = qdev_get_gpio_in_named(flash_dev, SSI_GPIO_CS, 0);
+        sysbus_connect_irq(spi_sbd, 1, flash_cs);
+
+        flash_dev = qdev_new("w25x32");
+        qdev_prop_set_uint8(flash_dev, "cs", 1);
+        qdev_realize_and_unref(flash_dev, BUS(qdev_get_child_bus(spi_dev, "spi")),
+                               &error_fatal);
+        flash_cs = qdev_get_gpio_in_named(flash_dev, SSI_GPIO_CS, 0);
+        sysbus_connect_irq(spi_sbd, 2, flash_cs);
+    }
 
     for (i = 0; i < ARRAY_SIZE(s->flash); i++) {
         /* Map legacy -drive if=pflash to machine properties */

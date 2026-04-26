@@ -1,4 +1,6 @@
 # devices Kconfig
+source gpio/Kconfig
 source char/Kconfig
 source i2c/Kconfig
 source timer/Kconfig
+source watchdog/Kconfig

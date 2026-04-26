@@ -1,0 +1,16 @@
+[package]
+name = "g233_wdt"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+bql = { path = "../../../../bql" }
+common = { path = "../../../../common" }
+hwcore = { path = "../../../core" }
+qom = { path = "../../../../qom" }
+system = { path = "../../../../system" }
+util = { path = "../../../../util" }

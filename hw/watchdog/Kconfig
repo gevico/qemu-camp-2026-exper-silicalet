@@ -21,6 +21,11 @@ config WDT_IMX2
 config WDT_SBSA
     bool
 
+config G233_WDT
+    bool
+    depends on HAVE_RUST
+    select X_G233_WDT_RUST
+
 config ALLWINNER_WDT
     bool
     select PTIMER

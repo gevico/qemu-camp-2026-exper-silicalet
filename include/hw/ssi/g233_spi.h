@@ -6,5 +6,6 @@
 #define TYPE_G233_SPI "g233-spi"
 
 DeviceState *g233_spi_create(hwaddr addr, qemu_irq irq);
+DeviceState *g233_rust_spi_create(hwaddr addr, qemu_irq irq);
 
 #endif

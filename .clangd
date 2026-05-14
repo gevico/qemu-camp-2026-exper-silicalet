@@ -1,0 +1,61 @@
+CompileFlags:
+  CompilationDatabase: build
+  # Remove:
+  # - -Werror
+  # - -ftrivial-auto-var-init=*
+  # - -fzero-call-used-regs=*
+  # - -fdiagnostics-color=*
+  Add:
+    - "-Ibuild"
+    - "-I."
+    - "-Iinlcude"
+    - "-include"
+    - "include/qemu/osdep.h"
+    - -isystem
+    - /nix/store/fbbw928argckfii0j322346ihmllg7a7-glibc-2.42-61-dev/include
+    - -isystem
+    - /nix/store/sanx9fg8mry8mq92zhlm5qvb83qlxrlx-gcc-15.2.0/lib/gcc/x86_64-unknown-linux-gnu/15.2.0/include
+    - -isystem
+    - /nix/store/kw0yjwbvw6arwgwaa3p8rz46qsgy4626-glib-2.86.3-dev/include/glib-2.0
+    - -isystem
+    - /nix/store/zcmsivndca5wmam9nwnbjrm0zkgykwfz-glib-2.86.3/lib/glib-2.0/include
+    - -isystem
+    - /nix/store/ydz5gvanzqmy8cnfyp0y0sy4ypfx4fss-liburing-2.14-dev/include
+    - -Wno-unknown-warning-option
+    - -Wno-ignored-optimization-argument
+    - -Wno-unused-command-line-argument
+    - -Wno-gnu-zero-variadic-macro-arguments
+
+Diagnostics:
+  UnusedIncludes: None
+  MissingIncludes: None
+  Suppress:
+    - unknown_warning_option
+    - unused-command-line-argument
+    - ignored-optimization-argument
+
+InlayHints:
+  Enabled: Yes
+
+# Hover:
+#   ShowAKA: No
+# ---
+# If:
+#   PathMatch: (^|.*/)meson\.build$
+
+# CompileFlags:
+#   Add:
+#     - -ferror-limit=0
+#     - -Wno-everything
+
+# Diagnostics:
+#   Suppress:
+#     - "*"
+#     - fatal_too_many_errors
+#     - pp_file_not_found
+#     - expected_expression
+#     - unknown_typename
+#     - undeclared_var_use
+
+# Index:
+#   Background: Skip

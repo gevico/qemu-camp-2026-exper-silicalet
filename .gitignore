@@ -21,3 +21,5 @@ GTAGS
 *.patch
 *.gcov
 /silicalet/
+.codex
+.gitignore

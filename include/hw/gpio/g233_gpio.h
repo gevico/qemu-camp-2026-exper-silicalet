@@ -6,5 +6,6 @@
 #define TYPE_G233_GPIO "g233-gpio"
 
 DeviceState *g233_gpio_create(hwaddr addr, qemu_irq irq);
+DeviceState *g233_rust_i2c_create(hwaddr addr, qemu_irq irq);
 
 #endif

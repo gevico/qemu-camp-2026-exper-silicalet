@@ -120,12 +120,16 @@ static MemMapEntry virt_high_pcie_memmap;
 
 #define G233_WDT_BASE 0x10010000
 #define G233_GPIO_BASE 0x10012000
+#define G233_RUST_I2C_BASE 0x10013000
 #define G233_PWM_BASE 0x10015000
 #define G233_SPI_BASE 0x10018000
+#define G233_RUST_SPI_BASE 0x10019000
 
 #define G233_GPIO_IRQ 2
 #define G233_WDT_IRQ 4
 #define G233_SPI_IRQ 5
+#define G233_RUST_I2C_IRQ 6
+#define G233_RUST_SPI_IRQ 7
 
 #define VIRT_FLASH_SECTOR_SIZE (256 * KiB)
 
@@ -1731,6 +1735,8 @@ static void virt_machine_init(MachineState *machine)
 
     g233_wdt_create(G233_WDT_BASE, qdev_get_gpio_in(mmio_irqchip, G233_WDT_IRQ));
     g233_gpio_create(G233_GPIO_BASE, qdev_get_gpio_in(mmio_irqchip, G233_GPIO_IRQ));
+    g233_rust_i2c_create(G233_RUST_I2C_BASE,
+                         qdev_get_gpio_in(mmio_irqchip, G233_RUST_I2C_IRQ));
     g233_pwm_create(G233_PWM_BASE);
     {
         DeviceState *spi_dev = g233_spi_create(G233_SPI_BASE,
@@ -1753,6 +1759,8 @@ static void virt_machine_init(MachineState *machine)
         flash_cs = qdev_get_gpio_in_named(flash_dev, SSI_GPIO_CS, 0);
         sysbus_connect_irq(spi_sbd, 2, flash_cs);
     }
+    g233_rust_spi_create(G233_RUST_SPI_BASE,
+                         qdev_get_gpio_in(mmio_irqchip, G233_RUST_SPI_IRQ));
 
     for (i = 0; i < ARRAY_SIZE(s->flash); i++) {
         /* Map legacy -drive if=pflash to machine properties */
